@@ -1673,6 +1673,17 @@ class BaseScyllaCluster(object):
         self.log.debug('Setup duration -> %s s', int(time_elapsed))
         return True
 
+    def restart_scylla(self, nodes=None):
+        if nodes:
+            nodes_to_restart = nodes
+        else:
+            nodes_to_restart = self.nodes
+        self.log.info("Going to restart Scylla on %s" % [n.name for n in nodes_to_restart])
+        for node in nodes_to_restart:
+            node.stop_scylla(verify_down=True)
+            node.start_scylla(verify_up=True)
+            self.log.debug("'{0.name}' restarted.".format(node))
+
 
 class BaseLoaderSet(object):
 
