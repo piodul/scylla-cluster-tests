@@ -57,6 +57,10 @@ from .cluster_aws import MonitorSetAWS
 from .data_path import get_data_path
 from . import es
 from results_analyze import ResultsAnalyzer
+from .utils import get_data_dir_path, log_run_info
+from . import docker
+from . import cluster_baremetal
+from . import db_stats
 
 try:
     from botocore.vendored.requests.packages.urllib3.contrib.pyopenssl import extract_from_urllib3
@@ -995,6 +999,7 @@ class ClusterTester(Test):
     def tearDown(self):
         self.clean_resources()
 
+<<<<<<< HEAD
     def get_scylla_versions(self):
         versions = {}
         try:
@@ -1143,3 +1148,42 @@ class ClusterTester(Test):
             ra.check_regression(self.test_id, is_gce)
         except Exception as ex:
             self.log.exception('Failed to check regression: %s', ex)
+=======
+    def populate_data_parallel(self, size_in_gb, blocking=True, read=False):
+        base_cmd = "cassandra-stress write cl=QUORUM "
+        if read:
+            base_cmd = "cassandra-stress read cl=ONE "
+        stress_fixed_params = " -schema 'replication(factor=3) compaction(strategy=LeveledCompactionStrategy)' " \
+                              "-port jmx=6868 -mode cql3 native -rate threads=200 -col 'size=FIXED(1024) n=FIXED(1)' "
+        stress_keys = "n="
+        population = " -pop seq="
+
+        total_keys = size_in_gb * 1024 * 1024
+        n_loaders = self.params.get('n_loaders')
+        keys_per_node = total_keys / n_loaders
+
+        write_queue = list()
+        start = 1
+        for i in range(1, n_loaders + 1):
+            stress_cmd = base_cmd + stress_keys + str(keys_per_node) + population + str(start) + ".." + \
+                         str(keys_per_node * i) + stress_fixed_params
+            start = keys_per_node * i + 1
+
+            write_queue.append(self.run_stress_thread(stress_cmd=stress_cmd, round_robin=True))
+            time.sleep(3)
+
+        if blocking:
+            for stress in write_queue:
+                self.verify_stress_thread(queue=stress)
+
+        return write_queue
+
+    @log_run_info
+    def alter_table_to_in_memory(self, key_space_name="keyspace1", table_name="standard1", node=None):
+        if not node:
+            node = self.db_cluster.nodes[0]
+        compaction_strategy = "%s" % {"class": "InMemoryCompactionStrategy"}
+        cql_cmd = "ALTER table {key_space_name}.{table_name} " \
+                  "WITH in_memory=true AND compaction={compaction_strategy}".format(**locals())
+        node.remoter.run('cqlsh -e "{}" {}'.format(cql_cmd, node.private_ip_address), verbose=True)
+>>>>>>> c033139... Added performance regression test for in-memory feature
