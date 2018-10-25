@@ -114,6 +114,32 @@ class LongevityTest(ClusterTester):
                 AND speculative_retry = '99.0PERCENTILE';
         """)
 
+    def _pre_create_schema(self, in_memory=False):
+        """
+        For cases we are testing many keyspaces and tables, It's a possibility that we will do it better and faster than
+        cassandra-stress.
+        """
+        node = self.db_cluster.nodes[0]
+        session = self.cql_connection_patient(node)
+
+        keyspace_num = self.params.get('keyspace_num', default=1)
+        self.log.debug('Pre Creating Schema for c-s with {} keyspaces'.format(keyspace_num))
+
+        for i in xrange(1, keyspace_num+1):
+            keyspace_name = 'keyspace{}'.format(i)
+            self.create_ks(session, keyspace_name, rf=3)
+            self.log.debug('{} Created'.format(keyspace_name))
+            self.create_cf(session,  'standard1', key_type='blob', read_repair=0.0, compact_storage=True,
+                           columns={'"C0"': 'blob', '"C1"': 'blob', '"C2"': 'blob', '"C3"': 'blob', '"C4"': 'blob'},
+                           in_memory=in_memory)
+
+    def _flush_all_nodes(self):
+        """
+        This function will connect all db nodes in the cluster and run "nodetool flush" command.
+        :return:
+        """
+        for node in self.db_cluster.nodes:
+            node.remoter.run('sudo nodetool flush')
 
 if __name__ == '__main__':
     main()
