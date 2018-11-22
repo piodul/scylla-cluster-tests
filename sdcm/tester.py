@@ -1000,7 +1000,6 @@ class ClusterTester(Test):
     def tearDown(self):
         self.clean_resources()
 
-<<<<<<< HEAD
     def get_scylla_versions(self):
         versions = {}
         try:
@@ -1149,7 +1148,7 @@ class ClusterTester(Test):
             ra.check_regression(self.test_id, is_gce)
         except Exception as ex:
             self.log.exception('Failed to check regression: %s', ex)
-=======
+
     def populate_data_parallel(self, size_in_gb, blocking=True, read=False):
         base_cmd = "cassandra-stress write cl=QUORUM "
         if read:
@@ -1187,4 +1186,3 @@ class ClusterTester(Test):
         cql_cmd = "ALTER table {key_space_name}.{table_name} " \
                   "WITH in_memory=true AND compaction={compaction_strategy}".format(**locals())
         node.remoter.run('cqlsh -e "{}" {}'.format(cql_cmd, node.private_ip_address), verbose=True)
->>>>>>> c033139... Added performance regression test for in-memory feature
