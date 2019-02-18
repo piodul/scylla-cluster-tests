@@ -485,7 +485,7 @@ class ClusterTester(db_stats.TestStatsMixin, Test):
                     ec2_ami_username=self.params.get('ami_db_cassandra_user'),
                     **cl_params)
             elif db_type == 'mixed_scylla':
-                cluster.Setup.mixed_cluster(True)
+                cluster.Setup.mixed_cluster(val=True)
                 cl_params.update(dict(ec2_instance_type=self.params.get('instance_type_db_oracle'),
                                       user_prefix=user_prefix + '-oracle'))
                 return ScyllaAWSCluster(
