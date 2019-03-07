@@ -64,7 +64,7 @@ DEFAULT_USER_PREFIX = getpass.getuser()
 TEST_DURATION = 60
 # max limit of coredump file can be uploaded(5 GB)
 COREDUMP_MAX_SIZE = 1024 * 1024 * 1024 * 5
-IP_SSH_CONNECTIONS = 'public'
+IP_SSH_CONNECTIONS = 'private'
 TASK_QUEUE = 'task_queue'
 RES_QUEUE = 'res_queue'
 WORKSPACE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -313,9 +313,7 @@ class BaseNode(object):
 
         self._public_ip_address = None
         self._private_ip_address = None
-        self._ssh_ip_mapping = {'public': self.public_ip_address,
-                                'private': self.private_ip_address}
-        ssh_login_info['hostname'] = self._ssh_ip_mapping[IP_SSH_CONNECTIONS]
+        ssh_login_info['hostname'] = self.ip_address()
 
         self.remoter = Setup.REMOTE(**ssh_login_info)
         self._ssh_login_info = ssh_login_info
@@ -484,8 +482,8 @@ class BaseNode(object):
     def private_ip_address(self):
         return self._private_ip_address
 
-    def ip_address(self, datacenter):
-        if (self.is_docker() or self.is_gce()) and len(datacenter) > 1:
+    def ip_address(self, datacenter=[]):
+        if IP_SSH_CONNECTIONS == 'public' or len(datacenter) > 1:
             return self.public_ip_address
         else:
             return self.private_ip_address
@@ -2090,8 +2088,15 @@ class BaseScyllaCluster(object):
                     else:
                         self.log.error("Unknown ScyllaDB version")
 
+    def get_cql_auth(self):
+        user = self.params.get('authenticator_user', default=None)
+        password = self.params.get('authenticator_password', default=None)
+        return (user, password) if user and password else None
+
     def run_cqlsh(self, node, cql_cmd, timeout=60, verbose=True, split=False):
-        cmd = 'cqlsh --no-color -e "{}" {} --request-timeout={}'.format(cql_cmd, node.private_ip_address, timeout)
+        cql_auth = self.get_cql_auth()
+        cql_auth = '-u {} -p {}'.format(*cql_auth) if cql_auth else ''
+        cmd = 'cqlsh --no-color {} -e "{}" {} --request-timeout={}'.format(cql_auth, cql_cmd, node.private_ip_address, timeout)
         cqlsh_out = node.remoter.run(cmd, timeout=timeout, verbose=verbose)
         # stdout of cqlsh example:
         #      pk
@@ -2373,6 +2378,11 @@ class BaseLoaderSet(object):
             self._loader_queue = [node for node in self.nodes]
         return self._loader_queue.pop(0)
 
+    def get_cql_auth(self):
+        user = self.params.get('authenticator_user', default=None)
+        password = self.params.get('authenticator_password', default=None)
+        return (user, password) if user and password else None
+
     def run_stress_thread(self, stress_cmd, timeout, output_dir, stress_num=1, keyspace_num=1, keyspace_name='',
                           profile=None, node_list=[], round_robin=False):
         if self.cassandra_stress_version == "unknown":  # Prior to 3.11, cassandra-stress didn't have version argument
@@ -2396,7 +2406,13 @@ class BaseLoaderSet(object):
             if node_list and '-node' not in stress_cmd:
                 first_node = [n for n in node_list if n.dc_idx == loader_idx % 3]
                 first_node = first_node[0] if first_node else node_list[0]
-                stress_cmd += " -node {}".format(first_node.private_ip_address)
+                stress_cmd += " -node {}".format(first_node.ip_address())
+
+            cql_auth = self.get_cql_auth()
+            if cql_auth and 'user=' not in stress_cmd:
+                # put the credentials into the right place into -mode section
+                stress_cmd = re.sub(r'(-mode.*?)-', r'\1 user={} password={} -'.format(*cql_auth), stress_cmd)
+
             stress_cmd_opt = stress_cmd.split()[1]
             cs_pipe_name = '/tmp/cs_{}_pipe_$1_$2'.format(stress_cmd_opt)
             stress_cmd = "mkfifo {}; cat {}|python /usr/bin/cassandra_stress_exporter {} & ".format(cs_pipe_name,
