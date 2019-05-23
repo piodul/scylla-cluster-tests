@@ -117,7 +117,9 @@ class LongevityTest(ClusterTester):
             # In some cases (like many keyspaces), we want to create the schema (all keyspaces & tables) before the load
             # starts - due to the heavy load, the schema propogation can take long time and c-s fails.
             if pre_create_schema:
-                self._pre_create_schema(keyspace_num, scylla_encryption_options=self.params.get('scylla_encryption_options', None))
+                # don't add scylla_encryption_options in pre_create_schema
+                #self._pre_create_schema(keyspace_num, scylla_encryption_options=self.params.get('scylla_encryption_options', None))
+                self._pre_create_schema(keyspace_num)
             # When the load is too heavy for one lader when using MULTI-KEYSPACES, the load is spreaded evenly across
             # the loaders (round_robin).
             if keyspace_num > 1 and self.params.get('round_robin', default='false').lower() == 'true':
@@ -131,6 +133,19 @@ class LongevityTest(ClusterTester):
             else:
                 self._run_all_stress_cmds(write_queue, params={'stress_cmd': prepare_write_cmd,
                                                                'keyspace_num': keyspace_num})
+
+            # action 1: enable encryption at-rest for all test tables
+            time.sleep(60)
+            scylla_encryption_options = self.params.get('scylla_encryption_options')
+            if scylla_encryption_options is None:
+                self.log.debug('scylla_encryption_options is not set, skipping to enable encryption at-rest for all test tables')
+            else:
+                for table in self.db_cluster.get_test_tables():
+                    node = self.db_cluster.nodes[0]
+                    with self.cql_connection_patient(node) as session:
+                        query = "ALTER TABLE {table} WITH scylla_encryption_options = {scylla_encryption_options};".format(**locals())
+                        self.log.debug('enable encryption at-rest for table {table}, query:\n\t{query}'.format(**locals()))
+                        session.execute(query)
 
             # In some cases we don't want the nemesis to run during the "prepare" stage in order to be 100% sure that
             # all keys were written succesfully
@@ -218,6 +233,19 @@ class LongevityTest(ClusterTester):
         if stress_read_cmd:
             params = {'keyspace_num': keyspace_num, 'stress_cmd': stress_read_cmd}
             self._run_all_stress_cmds(stress_queue, params)
+
+        # action 2: enable encryption at-rest for all test tables
+        time.sleep(60)
+        scylla_encryption_options = self.params.get('scylla_encryption_options')
+        if scylla_encryption_options is None:
+            self.log.debug('scylla_encryption_options is not set, skipping to enable encryption at-rest for all test tables')
+        else:
+            for table in self.db_cluster.get_test_tables():
+                node = self.db_cluster.nodes[0]
+                with self.cql_connection_patient(node) as session:
+                    query = "ALTER TABLE {table} WITH scylla_encryption_options = {scylla_encryption_options};".format(**locals())
+                    self.log.debug('enable encryption at-rest for table {table}, query:\n\t{query}'.format(**locals()))
+                    session.execute(query)
 
         for stress in stress_queue:
             self.verify_stress_thread(queue=stress)
