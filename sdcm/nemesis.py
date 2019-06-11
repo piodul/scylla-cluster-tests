@@ -785,6 +785,13 @@ class Nemesis(object):
         Start repair target_node in background, then try to abort the repair streaming.
         """
         self._set_current_disruption('AbortRepairMonkey')
+        sleep_time = 30  # seconds
+        self.log.debug('Stop target node %s seconds to make the data inconsistent.', sleep_time)
+        self.target_node.stop_scylla_server(verify_up=False, verify_down=True)
+        self.log.debug("Sleep for %s seconds", sleep_time)
+        time.sleep(sleep_time)
+        self.target_node.start_scylla_server(verify_up=True, verify_down=False)
+
         self.log.debug("Start repair target_node in background")
         thread1 = threading.Thread(target=self.repair_nodetool_repair)
         thread1.start()
