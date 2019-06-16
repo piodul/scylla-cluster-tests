@@ -147,6 +147,8 @@ class LongevityTest(ClusterTester):
                         query = "ALTER TABLE {table} WITH scylla_encryption_options = {scylla_encryption_options};".format(**locals())
                         self.log.debug('enable encryption at-rest for table {table}, query:\n\t{query}'.format(**locals()))
                         session.execute(query)
+                for node in self.db_cluster.nodes:
+                    node.remoter.run('nodetool upgradesstables', verbose=True)
 
             # In some cases we don't want the nemesis to run during the "prepare" stage in order to be 100% sure that
             # all keys were written succesfully
@@ -247,6 +249,8 @@ class LongevityTest(ClusterTester):
                     query = "ALTER TABLE {table} WITH scylla_encryption_options = {scylla_encryption_options};".format(**locals())
                     self.log.debug('enable encryption at-rest for table {table}, query:\n\t{query}'.format(**locals()))
                     session.execute(query)
+            for node in self.db_cluster.nodes:
+                node.remoter.run('nodetool upgradesstables', verbose=True)
 
         for stress in stress_queue:
             self.verify_stress_thread(queue=stress)
