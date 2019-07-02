@@ -5,9 +5,15 @@ stevedore==1.11.0
 PyYAML==3.13
 pystache==0.5.4
 libvirt-python==4.9.0
-fabric==2.4.0
 # avocado-framework
 avocado-framework==36.4
+# fabric==2.4.0
+# temporary install fabric from fruch private branch
+# at least until those get merged:
+# - https://github.com/pyinvoke/invoke/pull/645
+# - https://github.com/fabric/fabric/pull/1989
+https://github.com/fruch/invoke/tarball/scylla_timeout_v1
+https://github.com/fruch/fabric/tarball/scylla_timeout_v1
 boto3==1.6.5
 botocore==1.9.5
 awscli==1.14.52
