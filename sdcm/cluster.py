@@ -3128,7 +3128,7 @@ class BaseMonitorSet(object):
 
     @property
     def monitor_install_path(self):
-        return os.path.join(self.monitor_install_path_base, "scylla-grafana-monitoring-{}".format(self.monitor_branch))
+        return os.path.join(self.monitor_install_path_base, "scylla-monitoring-{}".format(self.monitor_branch))
 
     @property
     def monitoring_conf_dir(self):
@@ -3136,7 +3136,7 @@ class BaseMonitorSet(object):
 
     @property
     def monitoring_data_dir(self):
-        return os.path.join(self.monitor_install_path_base, "scylla-grafana-monitoring-data")
+        return os.path.join(self.monitor_install_path_base, "scylla-monitoring-data")
 
     @staticmethod
     def get_node_ips_param(public_ip=True):
@@ -3276,7 +3276,7 @@ class BaseMonitorSet(object):
         install_script = dedent("""
             mkdir -p {0.monitor_install_path_base}
             cd {0.monitor_install_path_base}
-            wget https://github.com/scylladb/scylla-grafana-monitoring/archive/{0.monitor_branch}.zip
+            wget https://github.com/scylladb/scylla-monitoring/archive/{0.monitor_branch}.zip
             unzip {0.monitor_branch}.zip
         """.format(self))
         node.remoter.run("bash -ce '%s'" % install_script)
