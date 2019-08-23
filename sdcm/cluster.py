@@ -390,7 +390,8 @@ class BaseNode(object):
             if self.is_rhel_like():
                 result = self.remoter.run("sudo yum search scylla-enterprise", ignore_status=True)
                 self.is_enterprise = True if ('scylla-enterprise.x86_64' in result.stdout or
-                                              'No matches found' not in result.stdout) else False
+                                              ('No matches found' not in result.stdout and
+                                               'One of the configured repositories failed (Extra Packages for Enterprise Linux 7 - x86_64)' not in result.stdout)) else False
             else:
                 result = self.remoter.run("sudo apt-cache search scylla-enterprise", ignore_status=True)
                 self.is_enterprise = True if 'scylla-enterprise' in result.stdout else False
@@ -1006,6 +1007,7 @@ client_encryption_options:
             result = self.remoter.run('cat %s' % repo_path, verbose=True)
             verify_scylla_repo_file(result.stdout, is_rhel_like=True)
             self.remoter.run('sudo yum clean all')
+            self.remoter.run('sudo rm -rf /var/cache/yum/*')
         else:
             repo_path = '/etc/apt/sources.list.d/scylla.list'
             self.remoter.run('sudo curl -o %s -L %s' % (repo_path, scylla_repo))
@@ -1028,6 +1030,7 @@ client_encryption_options:
         if self.is_rhel_like():
             self.remoter.run('sudo yum remove -y scylla\*')
             self.remoter.run('sudo yum clean all')
+            self.remoter.run('sudo rm -rf /var/cache/yum/*')
         else:
             self.remoter.run('sudo rm -f /etc/apt/sources.list.d/scylla.list')
             self.remoter.run('sudo apt-get remove -y scylla\*', ignore_status=True)
@@ -2416,6 +2419,8 @@ class BaseMonitorSet(object):
         if node.is_rhel_like():
             prereqs_script = dedent("""
                 yum install -y epel-release
+                yum clean all
+                rm -rf /var/cache/yum/*
                 yum install -y python-pip unzip wget docker
                 pip install --upgrade pip
                 pip install pyyaml
