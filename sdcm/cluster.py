@@ -3027,7 +3027,7 @@ class BaseLoaderSet(object):
         node.remoter.run("echo 'export GOPATH=$HOME/go' >> $HOME/.bashrc")
         node.remoter.run("echo 'export PATH=$PATH:/usr/local/go/bin' >> $HOME/.bashrc")
         node.remoter.run("source $HOME/.bashrc")
-        node.remoter.run("go get github.com/scylladb/scylla-bench")
+        node.remoter.run("go get github.com/scylladb/scylla-bench", ignore_status=True)
 
     @wait_for_init_wrap
     def wait_for_init(self, verbose=False, db_node_address=None):
