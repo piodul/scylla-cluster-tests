@@ -1652,6 +1652,7 @@ server_encryption_options:
         """
         result = self.remoter.run('/sbin/ip -o link show |grep ether |awk -F": " \'{print $2}\'', verbose=True)
         devname = result.stdout.strip()
+        self.remoter.run('sudo sed -i -e "s/\"iotune\",/\"iotune\", \"--default-log-level\", \"trace\",/" -e "s/sys.exit.*/raise/"  /usr/sbin/scylla_io_setup')
         self.remoter.run('sudo /usr/lib/scylla/scylla_setup --nic {} --disks {}'.format(devname, ','.join(disks)))
         result = self.remoter.run('cat /proc/mounts')
         assert ' /var/lib/scylla ' in result.stdout, "RAID setup failed, scylla directory isn't mounted correctly"
