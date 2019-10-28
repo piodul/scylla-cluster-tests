@@ -3402,9 +3402,10 @@ class BaseMonitorSet(object):
             node.update_repo_cache()
             prereqs_script = dedent("""
                 yum install -y unzip wget
-                easy_install pip
-                pip install --upgrade pip
-                pip install pyyaml
+                yum install -y python36
+                yum install -y python36-pip
+                python3 -m pip install --upgrade pip
+                python3 -m pip install pyyaml
                 curl -fsSL get.docker.com -o get-docker.sh
                 sh get-docker.sh
                 systemctl start docker
