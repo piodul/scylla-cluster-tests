@@ -17,6 +17,8 @@ __author__ = 'Roy Dahan'
 
 
 import random
+import time
+
 from collections import OrderedDict
 from uuid import UUID
 
@@ -2876,6 +2878,7 @@ class FillDatabaseData(ClusterTester):
             if not a['skip'] and ('skip_condition' not in a or eval(str(a['skip_condition']))):
                 for create_table in a['create_tables']:
                     session.execute(create_table)
+                time.sleep(30)
                 for truncate in a['truncates']:
                     session.execute(truncate)
 
