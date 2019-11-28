@@ -1063,6 +1063,8 @@ client_encryption_options:
                 self.remoter.run('sudo yum update -y --skip-broken --disablerepo=epel', retry=3)
             else:
                 self.remoter.run('sudo yum update -y --skip-broken', retry=3)
+        elif self.is_debian8():
+            pass
         else:
             self.remoter.run('sudo DEBIAN_FRONTEND=noninteractive apt-get --force-yes -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-confdef" upgrade -y', retry=3)
         # update repo cache after upgrade
