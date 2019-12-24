@@ -4,6 +4,7 @@ import uuid
 import os
 import tempfile
 from distutils.version import LooseVersion  # pylint: disable=no-name-in-module,import-error
+import json
 
 import yaml
 import getpass
@@ -197,6 +198,9 @@ class AWSCluster(cluster.BaseCluster):
 
         tags_list = create_tags_list()
         tags_list.append({'Key': 'NodeType', 'Value': self.node_type})
+
+        if isinstance(ec2_user_data, dict):
+            ec2_user_data = json.dumps(ec2_user_data)
 
         if not ec2_user_data:
             ec2_user_data = self._ec2_user_data
@@ -563,7 +567,10 @@ class ScyllaAWSCluster(cluster.BaseScyllaCluster, AWSCluster):
 
     def add_nodes(self, count, ec2_user_data='', dc_idx=0, enable_auto_bootstrap=False):
         if not ec2_user_data:
-            if self._ec2_user_data:
+            if self._ec2_user_data and isinstance(self._ec2_user_data, str):
+                ec2_user_data = re.sub(r'(--totalnodes\s)(\d*)(\s)',
+                                       r'\g<1>{}\g<3>'.format(len(self.nodes) + count), self._ec2_user_data)
+            elif self._ec2_user_data and isinstance(self._ec2_user_data, dict):
                 ec2_user_data = self._ec2_user_data
             else:
                 ec2_user_data = ('--clustername %s --totalnodes %s ' % (self.name, count))
@@ -591,6 +598,7 @@ class ScyllaAWSCluster(cluster.BaseScyllaCluster, AWSCluster):
             server_encrypt=self._param_enabled('server_encrypt'),
             client_encrypt=self._param_enabled('client_encrypt'),
             append_scylla_args=self.get_scylla_args(),
+            seed_address=seed_address,
         )
         if cluster.Setup.MULTI_REGION:
             setup_params.update(dict(
