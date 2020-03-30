@@ -1,0 +1,32 @@
+# Test
+test_duration: 3600
+prepare_write_cmd: ["cassandra-stress write no-warmup cl=QUORUM n=4000000 -schema 'replication(factor=3)' -port jmx=6868 -mode cql3 native -rate threads=20 -pop seq=1..4000000 -log interval=30"]
+stress_cmd: ["cassandra-stress mixed cl=QUORUM duration=48h -schema 'replication(factor=3)' -port jmx=6868 -mode cql3 native -rate threads=10 -pop seq=1..4000000 -log interval=90"]
+run_fullscan: 'random, 30'
+
+keyspace_num: 1000
+batch_size: 100
+
+space_node_threshold: 10485760
+
+nemesis_class_name: 'NodeTerminateAndReplace'
+nemesis_interval: 30
+
+# Env
+n_db_nodes: 6
+n_loaders: 10
+n_monitor_nodes: 1
+
+instance_type_db: 'i3.8xlarge'
+instance_type_loader: 'c5.4xlarge'
+aws_root_disk_size_monitor: 40
+
+user_prefix: 'longevity-1000-keyspaces-terminate-and-replace'
+
+store_results_in_elasticsearch: False
+
+# disables coredump on bad alloc temporary cause of https://github.com/scylladb/scylla/issues/4951
+append_scylla_args: '--blocked-reactor-notify-ms 500'
+
+# Manager
+use_mgmt: true
