@@ -92,6 +92,7 @@ class Nemesis():  # pylint: disable=too-many-instance-attributes,too-many-public
         self.stats = {}
         self.metrics_srv = nemesis_metrics_obj()
         self.task_used_streaming = None
+        self._strict_sequence = None
         self._random_sequence = None
         self._add_drop_column_max_per_drop = 5
         self._add_drop_column_max_per_add = 5
@@ -621,6 +622,11 @@ class Nemesis():  # pylint: disable=too-many-instance-attributes,too-many-public
                                callable(attr[1])]
         if not predefined_sequence:
             disrupt_method = random.choice(disrupt_methods)
+        elif predefined_sequence == 'strict':
+            if not self._strict_sequence:
+                # Re-populate the sequence of nemesises, in the exact order as specified
+                self._strict_sequence = disrupt_methods[:]
+            disrupt_method = self._strict_sequence.pop(0)
         else:
             if not self._random_sequence:
                 # Generate random sequence, every method has same chance to be called.
@@ -2129,6 +2135,18 @@ class AllMonkey(Nemesis):
     @log_time_elapsed_and_status
     def disrupt(self):
         self.call_random_disrupt_method(predefined_sequence=True)
+
+
+class SequenceMonkey(Nemesis):
+
+    @log_time_elapsed_and_status
+    def disrupt(self):
+        self.call_random_disrupt_method(disrupt_methods=['disrupt_nodetool_drain',
+                                                         'disrupt_add_drop_column',
+                                                         'disrupt_stop_wait_start_scylla_server',
+                                                         'disrupt_repair_streaming_err',
+                                                         'disrupt_nodetool_drain'],
+                                        predefined_sequence='strict')
 
 
 class MdcChaosMonkey(Nemesis):
