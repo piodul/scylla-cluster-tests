@@ -23,7 +23,6 @@ table_definition: |
     nums_set set<int>,
     names_set set<text>
   ) WITH bloom_filter_fp_chance = 0.01
-    AND cdc = {'enabled': true, 'preimage': true, 'postimage': true, 'ttl': 600}
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'ALL'}
     AND comment = 'Request for unit level UIs'
     AND compaction = {'class': 'SizeTieredCompactionStrategy'}
