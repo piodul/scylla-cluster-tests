@@ -66,7 +66,8 @@ def write_cql_result(res, path: str):
 
 
 SCYLLA_MIGRATE_URL = "https://kbr-scylla.s3-eu-west-1.amazonaws.com/scylla-migrate"
-REPLICATOR_URL = "https://kbr-scylla.s3-eu-west-1.amazonaws.com/scylla-cdc-replicator-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+# REPLICATOR_URL = "https://kbr-scylla.s3-eu-west-1.amazonaws.com/scylla-cdc-replicator-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+REPLICATOR_URL = "https://github.com/scylladb/scylla-cdc-go/"
 
 
 class CDCReplicationTest(ClusterTester):
@@ -371,7 +372,9 @@ class CDCReplicationTest(ClusterTester):
             (cat >runreplicator.sh && chmod +x runreplicator.sh && tmux new-session -d -s 'replicator' ./runreplicator.sh) <<'EOF'
             #!/bin/bash
 
-            java -cp replicator.jar com.scylladb.scylla.cdc.replicator.Main -k {} -t {} -s {} -d {} -cl one -m {} 2>&1 | tee cdc-replicator.log
+            cd ./scylla-cdc-go/
+            git checkout new-api
+            go run ./replicator/ -keyspace {} -table {} -source {} -destination {} -read-consistency quorum -write-consistency quorum -mode {} 2>&1 | tee ../cdc-replicator.log
             EOF
         """.format(self.KS_NAME, self.TABLE_NAME,
                    self.db_cluster.nodes[0].external_address,
@@ -408,7 +411,8 @@ class CDCReplicationTest(ClusterTester):
             self.fail('Could not obtain scylla-migrate.')
 
         self.log.info('Getting replicator on loader node.')
-        res = loader_node.remoter.run(cmd=f'wget {REPLICATOR_URL} -O replicator.jar')
+        res = loader_node.remoter.run(cmd=f'git clone {REPLICATOR_URL}')
+        # res = loader_node.remoter.run(cmd=f'wget {REPLICATOR_URL} -O replicator.jar')
         if res.exit_status != 0:
             self.fail('Could not obtain CDC replicator.')
 
